@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claude 생활 자동화 1일차</title>
+<meta name="description" content="사진 폴더로 가족 앨범, 영수증으로 정산표, 내 글로 발표 슬라이드. Claude 생활 자동화 1일차 실습을 집에서 따라 하는 안내입니다.">
+<meta property="og:title" content="Claude 생활 자동화 1일차">
+<meta property="og:description" content="사진·영수증·내 글, 세 가지를 Claude에게 맡기는 실습 따라 하기">
+<meta property="og:image" content="img/album-phone.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 한 줄 기둥(본문 46rem) 안내지. 교시마다 '결과 → 준비물 → 따라 하기 → 되물은 것 → 고치기 → 확인' 순서. 부탁 문장은 노란 메모 카드. */
+:root {
+  --paper: #f5f6f2;
+  --surface: #ffffff;
+  --ink: #1c2622;
+  --muted: #5b6863;
+  --line: #dbe1dd;
+  --accent: #1d6b58;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2eee8;
+  --memo: #fff4c7;
+  --memo-line: #ecd98a;
+  --memo-ink: #3d3200;
+  --ask: #eef1f8;
+  --ask-ink: #26324d;
+  --good: #1f7a3d;
+  --bad: #b2402a;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111715; --surface: #18201d; --ink: #e6ece9; --muted: #9eb0a9; --line: #2a3531;
+    --accent: #72cdb1; --accent-ink: #0d1613; --accent-soft: #1b2f28;
+    --memo: #2b2713; --memo-line: #5a4f20; --memo-ink: #f2e3a3;
+    --ask: #1b2232; --ask-ink: #c9d4f0; --good: #7fd59a; --bad: #f08d77;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111715; --surface: #18201d; --ink: #e6ece9; --muted: #9eb0a9; --line: #2a3531;
+  --accent: #72cdb1; --accent-ink: #0d1613; --accent-soft: #1b2f28;
+  --memo: #2b2713; --memo-line: #5a4f20; --memo-ink: #f2e3a3;
+  --ask: #1b2232; --ask-ink: #c9d4f0; --good: #7fd59a; --bad: #f08d77;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 4.5rem; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent); text-underline-offset: 0.18em; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.3; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.wrap { max-width: 46rem; margin: 0 auto; padding-inline: 1.1rem; }
+
+/* ---------- 머리말 ---------- */
+.hero { padding-block: 3rem 2rem; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em;
+  color: var(--accent); text-transform: uppercase;
+}
+.hero h1 { font-size: clamp(1.9rem, 6vw, 2.75rem); margin-top: 0.6rem; }
+.hero .lead { margin-top: 1rem; color: var(--muted); max-width: 38rem; }
+.results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.8rem; margin-top: 2rem; }
+.result-card {
+  display: flex; flex-direction: column; gap: 0.5rem; text-decoration: none; color: inherit;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.6rem;
+}
+.result-card:hover { border-color: var(--accent); }
+.result-card .thumb { aspect-ratio: 4 / 5; overflow: hidden; border-radius: 6px; background: var(--accent-soft); }
+.result-card .thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.result-card .when { font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent); letter-spacing: 0.04em; }
+.result-card strong { font-size: 0.95rem; line-height: 1.4; }
+@media (max-width: 560px) {
+  .results { grid-template-columns: 1fr; }
+  .result-card { flex-direction: row; align-items: center; }
+  .result-card .thumb { width: 5.5rem; flex: none; aspect-ratio: 1; }
+}
+
+/* ---------- 교시 이동 ---------- */
+.lesson-nav {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+}
+.lesson-nav .wrap { display: flex; gap: 0.4rem; padding-block: 0.55rem; overflow-x: auto; }
+.lesson-nav a {
+  flex: none; text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 600;
+  padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+}
+.lesson-nav a[aria-current="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* ---------- 섹션 공통 ---------- */
+section.block { padding-block: 2.6rem; border-bottom: 1px solid var(--line); }
+section.block:last-of-type { border-bottom: 0; }
+.block-head { display: grid; gap: 0.5rem; margin-bottom: 1.6rem; }
+.block-head h2 { font-size: clamp(1.55rem, 5vw, 2.05rem); }
+.block-head .summary { color: var(--muted); }
+h3 { font-size: 1.22rem; margin-top: 2.2rem; margin-bottom: 0.8rem; }
+.note { font-size: 0.92rem; color: var(--muted); }
+
+figure { margin: 0; }
+figure.shot { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.6rem; }
+figure.shot img { border-radius: 6px; margin-inline: auto; }
+figure.shot.phone img { max-height: 34rem; width: auto; }
+figcaption { font-size: 0.9rem; color: var(--muted); margin-top: 0.6rem; line-height: 1.6; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; align-items: start; }
+@media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+
+/* 준비물 */
+.kit { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; }
+.kit li { display: flex; gap: 0.6rem; align-items: baseline; }
+.kit li::before { content: "□"; color: var(--accent); font-weight: 700; flex: none; }
+
+/* 공통 순서 4단계 */
+.loop { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; counter-reset: loop; }
+.loop li { counter-increment: loop; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.8rem; font-size: 0.95rem; line-height: 1.5; }
+.loop li::before { content: counter(loop); display: block; font-family: var(--font-display); font-size: 1.6rem; color: var(--accent); line-height: 1; margin-bottom: 0.4rem; }
+.loop b { display: block; }
+@media (max-width: 640px) { .loop { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 따라 하기 단계 */
+ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: step; display: grid; gap: 1.4rem; }
+ol.steps > li { counter-increment: step; display: grid; grid-template-columns: 2.3rem minmax(0, 1fr); gap: 0.8rem; }
+ol.steps > li::before {
+  content: counter(step); width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink);
+  font-weight: 700; font-family: var(--font-display); font-size: 1.1rem;
+}
+.step-body { display: grid; gap: 0.75rem; min-width: 0; }
+.step-body > p:first-child { font-weight: 600; }
+
+/* 부탁 문장 카드 */
+.prompt { background: var(--memo); border: 1px solid var(--memo-line); border-radius: var(--radius); color: var(--memo-ink); overflow: hidden; }
+.prompt-top { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem 0.45rem 0.9rem; border-bottom: 1px dashed var(--memo-line); }
+.prompt-label { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.05em; }
+.prompt pre {
+  margin: 0; padding: 0.85rem 0.95rem 1rem; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere;
+  font-family: var(--font-body); font-size: 0.98rem; line-height: 1.7;
+}
+.copy {
+  font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--memo-ink); background: transparent; color: var(--memo-ink);
+  border-radius: 999px; padding: 0.2rem 0.75rem; min-height: 2rem;
+}
+.copy:hover { background: var(--memo-ink); color: var(--memo); }
+.copy.done { background: var(--memo-ink); color: var(--memo); }
+
+/* Claude가 되물은 것 */
+.ask { background: var(--ask); color: var(--ask-ink); border-radius: var(--radius); padding: 0.9rem 1rem; display: grid; gap: 0.7rem; }
+.ask .who { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.05em; }
+.qa { display: grid; gap: 0.25rem; }
+.qa .q::before { content: "Claude  "; font-weight: 700; }
+.qa .a { padding-left: 1rem; }
+.qa .a::before { content: "답  "; font-weight: 700; }
+
+/* 체크리스트 */
+.check { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.check label { display: flex; gap: 0.7rem; align-items: flex-start; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.65rem 0.8rem; }
+.check input { width: 1.2rem; height: 1.2rem; margin-top: 0.3rem; accent-color: var(--accent); flex: none; }
+.check input:checked + span { color: var(--muted); text-decoration: line-through; }
+.check-count { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; }
+
+/* 하지 말 것 / 이렇게 */
+.dodont { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.8rem; }
+.dodont > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.9rem 1rem; }
+.dodont h4 { margin: 0 0 0.4rem; font-size: 0.95rem; }
+.dodont .dont h4 { color: var(--bad); }
+.dodont .do h4 { color: var(--good); }
+.dodont ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.3rem; font-size: 0.95rem; }
+@media (max-width: 640px) { .dodont { grid-template-columns: 1fr; } }
+
+/* 막힐 때 */
+.faq { display: grid; gap: 0.5rem; }
+.faq details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.7rem 0.9rem; }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq details p { margin-top: 0.5rem; color: var(--muted); }
+
+/* 내려받기 */
+.downloads { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.dl {
+  display: flex; flex-direction: column; gap: 0.15rem; text-decoration: none;
+  border: 1px solid var(--accent); border-radius: var(--radius); padding: 0.75rem 0.9rem; color: var(--ink); background: var(--surface);
+}
+.dl.main { background: var(--accent); color: var(--accent-ink); }
+.dl b { font-size: 1rem; }
+.dl span { font-size: 0.85rem; opacity: 0.85; }
+.dl:hover { box-shadow: 0 0 0 2px var(--accent); }
+@media (max-width: 560px) { .downloads { grid-template-columns: 1fr; } }
+
+.result-line { font-variant-numeric: tabular-nums; }
+footer { padding-block: 2.5rem 3.5rem; color: var(--muted); font-size: 0.9rem; }
+footer ul { padding-left: 1.1rem; display: grid; gap: 0.25rem; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Claude로 시작하는 생활 자동화 · 1일차</p>
+    <h1>사진, 영수증, 내&nbsp;글. 세 가지를 Claude에게 맡겨 봐요</h1>
+    <p class="lead">수업 시간에 함께 한 실습 세 가지를 집에서 그대로 따라 할 수 있게 정리했습니다. 노란 메모의 부탁 문장은 <b>복사</b>를 눌러 Claude에 그대로 붙여 넣으시면 됩니다. 실습에 쓴 사진과 영수증, 원고도 내려받을 수 있습니다.</p>
+    <div class="results">
+      <a class="result-card" href="#lesson1">
+        <div class="thumb"><img src="img/album-phone.jpg" alt="휴대폰에서 연 가족 앨범. 사진 아래에 장소와 설명이 붙어 있다" loading="eager"></div>
+        <div><span class="when">1교시</span><br><strong>사진 폴더로 가족 앨범</strong></div>
+      </a>
+      <a class="result-card" href="#lesson2">
+        <div class="thumb"><img src="img/settlement.jpg" alt="영수증 목록과 사람별 정산이 한 장에 정리된 엑셀 정산표" loading="eager"></div>
+        <div><span class="when">2교시</span><br><strong>영수증 사진으로 정산표</strong></div>
+      </a>
+      <a class="result-card" href="#lesson3">
+        <div class="thumb"><img src="img/slides-16.jpg" alt="원고로 만든 16장짜리 발표 슬라이드 미리보기" loading="eager"></div>
+        <div><span class="when">3교시</span><br><strong>내 글로 발표 슬라이드</strong></div>
+      </a>
+    </div>
+  </div>
+</header>
+
+<nav class="lesson-nav" aria-label="교시 이동">
+  <div class="wrap">
+    <a href="#start">시작 전에</a>
+    <a href="#lesson1">1교시 앨범</a>
+    <a href="#lesson2">2교시 정산</a>
+    <a href="#lesson3">3교시 슬라이드</a>
+  </div>
+</nav>
+
+<main>
+<!-- ============================== 시작 전에 ============================== -->
+<section class="block" id="start">
+  <div class="wrap">
+    <div class="block-head">
+      <p class="eyebrow">시작 전에 한 번만</p>
+      <h2>준비할 것 세 가지</h2>
+    </div>
+    <ul class="kit">
+      <li><span><b>Claude 유료 계정</b>으로 로그인해 주세요. 1교시의 폴더 맡기기(Cowork)는 유료 요금제에서 됩니다. Pro는 미국 기준 월 20달러입니다.</span></li>
+      <li><span><b>Claude 데스크톱 앱</b>(Windows·macOS)을 설치해 주세요. 1교시는 앱에서 합니다.</span></li>
+      <li><span><b>파일 만들기 켜기</b>: 설정 → 기능(Capabilities) → '코드 실행 및 파일 생성(Code execution and file creation)'을 켜 주세요. 2·3교시에서 엑셀과 파워포인트 파일을 받을 때 필요합니다.</span></li>
+    </ul>
+
+    <h3>세 실습 모두 이 순서로 맡깁니다</h3>
+    <ol class="loop">
+      <li><b>기준을 말한다</b>무엇을, 어떻게 해 달라는지 문장으로 적어요</li>
+      <li><b>계획을 보고 허락한다</b>Claude가 먼저 보여 주는 계획을 읽어요</li>
+      <li><b>결과를 직접 확인한다</b>숫자와 사진은 내 눈으로 한 번 더</li>
+      <li><b>말로 고친다</b>마음에 안 드는 곳을 그대로 말해요</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================== 1교시 ============================== -->
+<section class="block" id="lesson1">
+  <div class="wrap">
+    <div class="block-head">
+      <p class="eyebrow">1교시 · 50분 · 데스크톱 앱</p>
+      <h2>사진 폴더로 가족 앨범 만들기</h2>
+      <p class="summary">여행 사진 폴더 하나를 맡기면, 비슷한 사진은 따로 빼 두고 남은 사진으로 휴대폰에서 보는 앨범 한 장을 만들어 줍니다.</p>
+    </div>
+
+    <figure class="shot phone">
+      <img src="img/album-phone.jpg" alt="완성된 album.html을 휴대폰 너비로 연 화면. 날짜 제목 아래 사진 카드마다 설명, 장소, 시각이 있다" loading="lazy" width="600" height="1500">
+      <figcaption>완성된 앨범을 휴대폰에서 연 모습입니다. 사진을 누르면 크게 보이고, 옆으로 밀면 다음 사진으로 넘어갑니다. <a href="examples/album.html" target="_blank" rel="noopener">완성 예시 열어 보기</a></figcaption>
+    </figure>
+
+    <h3>준비물</h3>
+    <ul class="kit">
+      <li><span>실습 사진 15장(아래에서 내려받기) 또는 내 사진 복사본 30~100장</span></li>
+      <li><span>Claude 데스크톱 앱과 유료 계정</span></li>
+    </ul>
+
+    <h3>따라 하기</h3>
+    <ol class="steps">
+      <li><div class="step-body">
+        <p>실습 사진을 내려받아 압축을 풀어 주세요.</p>
+        <p>'실습사진-경주월드' 폴더에 사진 15장이 들어 있습니다. 내 사진으로 하실 때는 원본 말고 <b>복사본 폴더</b>를 따로 만들어 주세요.</p>
+        <div class="downloads"><a class="dl main" href="files/practice-photos.zip" download="실습사진-경주월드.zip"><b>실습 사진 15장 받기</b><span>압축 파일 · 3.7MB</span></a></div>
+      </div></li>
+      <li><div class="step-body">
+        <p>데스크톱 앱에서 Cowork를 열고 그 폴더를 골라 주세요.</p>
+        <p class="note">사진이 잔뜩 든 상위 폴더 말고, 이번에 쓸 폴더 하나만 고릅니다. Cowork는 고른 폴더의 파일을 직접 읽고 씁니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>아래 부탁 문장을 붙여 넣어 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">부탁 문장 · 앨범 만들기</span><button class="copy" type="button">복사</button></div>
+<pre>이 폴더의 사진으로 가족 앨범을 만들어 줘.
+1. 원본은 지우지 말고, 비슷한 사진 중 덜 잘 나온 것은 '삭제후보' 폴더로 옮겨 줘.
+2. 남은 사진을 찍은 날짜 순서로 정리해 줘. 날짜를 모르는 사진은 맨 뒤에.
+3. 날짜별로 제목을 붙인 앨범을 album.html 한 파일로 만들어 줘. 휴대폰에서도 보이게.
+4. 시작하기 전에 계획을 먼저 보여 주고, 내가 좋다고 하면 진행해.</pre>
+        </div>
+      </div></li>
+      <li><div class="step-body">
+        <p>Claude가 보여 주는 계획을 읽어 주세요.</p>
+        <p>실습에서는 Claude가 사진 15장의 촬영 날짜를 읽고, 몇 초 간격으로 찍은 비슷한 사진 3묶음을 찾아 나란히 보여 줬습니다. 눈을 감은 사진, 흔들린 사진을 '삭제후보'로 옮기겠다는 계획이었습니다.</p>
+        <figure class="shot">
+          <img src="img/album-plan-compare.jpg" alt="비슷한 사진 3묶음 비교. 왼쪽은 남길 사진, 오른쪽은 삭제후보로 옮길 사진" loading="lazy" width="900" height="1104">
+          <figcaption>Claude가 계획 단계에서 보여 준 비교 그림입니다. 왼쪽은 남기고, 오른쪽은 '삭제후보' 폴더로 옮깁니다.</figcaption>
+        </figure>
+        <div class="ask">
+          <p class="who">실습에서 Claude가 함께 물어본 것</p>
+          <div class="qa"><p class="q">앨범 제목을 정해 주세요. 정하지 않으시면 '경주월드 가족 나들이'로 하겠습니다.</p></div>
+          <div class="qa"><p class="q">바이킹 앞 셀카 두 장은 표정이 달라서 둘 다 남기고 싶으시면 말씀해 주세요.</p></div>
+        </div>
+      </div></li>
+      <li><div class="step-body">
+        <p>계획이 괜찮으면 허락해 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">부탁 문장 · 허락하기</span><button class="copy" type="button">복사</button></div>
+<pre>좋아, 그대로 진행해</pre>
+        </div>
+      </div></li>
+      <li><div class="step-body">
+        <p>결과를 열어 확인해 주세요.</p>
+        <p class="result-line">실습 결과: 폴더에 사진 12장이 남고, '삭제후보' 폴더에 3장과 <b>이동기록.txt</b>(무엇을 왜 옮겼는지)가 생겼습니다. <b>album.html</b> 한 파일(약 2.6MB)은 카카오톡으로 휴대폰에 보내도 바로 열립니다.</p>
+      </div></li>
+    </ol>
+
+    <h3>마음에 안 들면 말로 고쳐요</h3>
+    <ol class="steps">
+      <li><div class="step-body">
+        <p>사진에 시각만 있어서 허전하다면</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 실습에서 쓴 문장</span><button class="copy" type="button">복사</button></div>
+<pre>사진에 시간만 나오니 너무 휑해. 장소라든지 짧은 설명을 붙여줘</pre>
+        </div>
+        <p>사진 12장마다 '정문', '회전목마' 같은 장소와 "경주월드 도착! 정문 앞에서 다 같이 한 장" 같은 설명이 붙었습니다. Claude는 놀이기구의 실제 이름처럼 사진만으로 알 수 없는 것은 일반적인 이름으로 적었다고 알려 줬습니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>설명 하나만 바꾸고 싶다면</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 바꿔 쓰기</span><button class="copy" type="button">복사</button></div>
+<pre>오후 3시 24분 사진 설명을 '관람차에서 내려다본 보문호'로 바꿔 줘</pre>
+        </div>
+      </div></li>
+    </ol>
+
+    <h3>완성 확인</h3>
+    <ul class="check" data-check="l1">
+      <li><label><input type="checkbox" id="l1-1"><span>원본 사진 수가 그대로인가요? (남은 12장 + 삭제후보 3장 = 15장)</span></label></li>
+      <li><label><input type="checkbox" id="l1-2"><span>'삭제후보' 폴더에 빠진 사진과 이동기록이 있나요?</span></label></li>
+      <li><label><input type="checkbox" id="l1-3"><span>앨범이 날짜순이고 날짜별 제목이 있나요?</span></label></li>
+      <li><label><input type="checkbox" id="l1-4"><span>휴대폰으로 album.html을 열어도 잘 보이나요?</span></label></li>
+    </ul>
+    <p class="check-count" data-count="l1"></p>
+
+    <h3>안전하게 맡기기</h3>
+    <div class="dodont">
+      <div class="dont"><h4>하지 말 것</h4><ul>
+        <li>사진 전체가 든 상위 폴더를 통째로 연결하기</li>
+        <li>"필요 없는 건 지워 줘"라고 부탁하기</li>
+        <li>사진 속 사람 이름을 알려 달라고 하기 (지원하지 않습니다)</li>
+      </ul></div>
+      <div class="do"><h4>이렇게</h4><ul>
+        <li>이번 작업용 폴더 하나만 연결하기</li>
+        <li>지우기 대신 '삭제후보로 옮기기'. 영구 삭제는 Claude가 반드시 허락을 묻습니다</li>
+        <li>가족 얼굴이 담긴 앨범은 보낼 사람을 정하고 공유하기</li>
+      </ul></div>
+    </div>
+
+    <h3>막힐 때</h3>
+    <div class="faq">
+      <details><summary>폴더를 고르는 버튼이 안 보여요</summary><p>유료 계정으로 로그인했는지, 웹이 아니라 데스크톱 앱인지 확인해 주세요.</p></details>
+      <details><summary>엉뚱한 사진을 골라요</summary><p>흐리거나 돌아간 사진, 아주 작은 사진은 잘못 볼 수 있어요. "눈 감은 사진, 흔들린 사진을 빼 줘"처럼 기준을 더 구체적으로 말해 주세요.</p></details>
+      <details><summary>순서가 뒤섞였어요</summary><p>"날짜를 모르는 사진은 맨 뒤로"를 넣어서 다시 부탁해 주세요. 카카오톡으로 받은 사진은 촬영 날짜가 지워져 있을 때가 많습니다.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 2교시 ============================== -->
+<section class="block" id="lesson2">
+  <div class="wrap">
+    <div class="block-head">
+      <p class="eyebrow">2교시 · 50분 · 채팅</p>
+      <h2>영수증 사진으로 정산표 만들기</h2>
+      <p class="summary">여행이나 모임 영수증 사진을 보여 주면, 누가 누구에게 얼마를 보내면 되는지 계산된 엑셀 정산표를 만들어 줍니다.</p>
+    </div>
+
+    <figure class="shot">
+      <img src="img/settlement.jpg" alt="경주 나들이 정산표. 총 지출 331,300원, 인원 4명, 1인당 82,825원. 영수증 6건 목록과 사람별 낸 돈, 내야 할 돈, 차액" loading="lazy" width="1058" height="877">
+      <figcaption>최종 정산표입니다. 총 지출 331,300원을 4명이 나누면 1인당 82,825원이고, 받을 사람은 초록, 보낼 사람은 빨강으로 표시됩니다. <a href="examples/settlement.xlsx" download="정산표-예시.xlsx">예시 파일 받기</a></figcaption>
+    </figure>
+
+    <h3>준비물</h3>
+    <ul class="kit">
+      <li><span>실습 영수증 6장(아래에서 내려받기) 또는 내 영수증 사진 5~10장</span></li>
+      <li><span>'코드 실행 및 파일 생성' 켜기 (시작 전에 참고)</span></li>
+      <li><span>엑셀 또는 무료 스프레드시트 앱</span></li>
+    </ul>
+
+    <h3>따라 하기</h3>
+    <ol class="steps">
+      <li><div class="step-body">
+        <p>실습 영수증을 내려받아 압축을 풀어 주세요.</p>
+        <figure class="shot" style="max-width: 15rem"><img src="img/receipt-sample.jpg" alt="실습 영수증 예시. 한솔마을 한정식, 합계 68,000원, 카드번호 일부가 가려져 있다" loading="lazy" width="520" height="696"><figcaption>실습 영수증 6장 중 한 장. 카드번호는 가려져 있습니다.</figcaption></figure>
+        <div class="downloads"><a class="dl main" href="files/practice-receipts.zip" download="실습영수증.zip"><b>실습 영수증 6장 받기</b><span>압축 파일 · 1.8MB</span></a></div>
+        <p class="note">내 영수증으로 하실 때는 카드번호와 계좌번호를 가리고 찍어 주세요.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>새 대화에 영수증 사진 6장을 올리고 부탁 문장을 붙여 넣어 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">부탁 문장 · 정산 엑셀</span><button class="copy" type="button">복사</button></div>
+<pre>이 영수증으로 4명(민수, 지영, 서준, 나)이 똑같이 나누는 정산표를 엑셀 파일로 만들어 줘.
+시트1: 영수증 목록과 합계
+시트2: 사람별로 낸 돈, 내야 할 돈, 차액
+시트3: 누가 누구에게 얼마를 보내면 끝나는지 (송금 횟수가 가장 적게)
+금액은 원 단위, 계산은 엑셀 수식으로 넣어 줘.</pre>
+        </div>
+        <details class="faq"><summary>먼저 표로만 확인하고 싶다면</summary>
+          <div class="prompt" style="margin-top: 0.6rem">
+            <div class="prompt-top"><span class="prompt-label">부탁 문장 · 표로 뽑기</span><button class="copy" type="button">복사</button></div>
+<pre>영수증 사진 6장이야. 한 장씩 읽어서 표로 만들어 줘.
+열: 번호 | 날짜 | 가게 | 금액(원) | 낸 사람
+읽기 어려운 글자는 추측하지 말고 '확인 필요'라고 적어 줘.
+마지막 줄에 합계.</pre>
+          </div>
+        </details>
+      </div></li>
+      <li><div class="step-body">
+        <p>Claude가 모르는 것을 물어보면 답해 주세요.</p>
+        <div class="ask">
+          <p class="who">실습에서 Claude가 물어본 세 가지</p>
+          <div class="qa"><p class="q">신한카드 ****1234는 누구의 카드인가요? (테마파크, 한정식, 카페 결제)</p><p class="a">민수</p></div>
+          <div class="qa"><p class="q">국민카드 ****5678은 누구의 카드인가요? (주유소, 편의점, 기념품샵 결제)</p><p class="a">민수</p></div>
+          <div class="qa"><p class="q">한정식 영수증의 품목 합계(64,000원)와 영수증 합계(68,000원)가 다릅니다. 정산에는 어느 금액을 쓸까요?</p><p class="a">64,000원</p></div>
+        </div>
+        <p class="note">영수증의 숫자는 사람이 한 번 더 봐야 합니다. 실습처럼 Claude가 맞지 않는 곳을 먼저 찾아 주기도 합니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>엑셀 파일을 받아 열어 주세요.</p>
+        <p class="result-line">실습 결과: 총 지출 331,300원, 1인당 82,825원. 민수가 모두 결제해서 지영·서준·나가 민수에게 82,825원씩 보내면 끝납니다(송금 3번). 계산은 엑셀 수식으로 들어 있어서 금액을 고치면 다시 계산됩니다.</p>
+      </div></li>
+    </ol>
+
+    <h3>마음에 안 들면 말로 고쳐요</h3>
+    <ol class="steps">
+      <li><div class="step-body">
+        <p>시트가 많아서 보기 어렵다면</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 실습에서 쓴 문장</span><button class="copy" type="button">복사</button></div>
+<pre>세부 품목내역과 송금 방법은 필요없어. 사람별 정산까지 한 탭에 나오게 하고 가시성 좋게 만들어</pre>
+        </div>
+        <p>시트 세 개가 한 탭으로 합쳐지고, 총 지출·인원·1인당 금액이 맨 위에 크게 나왔습니다. 위 그림이 그 결과입니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>일부만 같이 낸 사람이 있다면</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 바꿔 쓰기</span><button class="copy" type="button">복사</button></div>
+<pre>서준은 카페 영수증만 나눠 내고, 나머지는 3명이 나누도록 정산표를 고쳐 줘</pre>
+        </div>
+      </div></li>
+    </ol>
+
+    <h3>완성 확인</h3>
+    <ul class="check" data-check="l2">
+      <li><label><input type="checkbox" id="l2-1"><span>영수증 장수와 표의 줄 수가 같은가요? (6장 = 6줄)</span></label></li>
+      <li><label><input type="checkbox" id="l2-2"><span>표 합계가 영수증 금액을 더한 값과 같은가요?</span></label></li>
+      <li><label><input type="checkbox" id="l2-3"><span>'보낼 돈' 합계와 '받을 돈' 합계가 같은가요? (차액 합계 0원)</span></label></li>
+      <li><label><input type="checkbox" id="l2-4"><span>카드번호가 보이는 사진을 올리지 않았나요?</span></label></li>
+    </ul>
+    <p class="check-count" data-count="l2"></p>
+
+    <h3>돈 이야기에서 지킬 것</h3>
+    <div class="dodont">
+      <div class="dont"><h4>하지 말 것</h4><ul>
+        <li>카드번호·계좌번호가 보이는 채로 올리기</li>
+        <li>Claude에게 송금까지 맡기기</li>
+        <li>정산 파일을 모르는 사람에게 공유하기</li>
+      </ul></div>
+      <div class="do"><h4>이렇게</h4><ul>
+        <li>민감한 숫자는 가리고 찍기</li>
+        <li>송금은 표를 보고 내가 직접</li>
+        <li>단톡방에는 사람별 정산 결과만 붙여 넣기</li>
+      </ul></div>
+    </div>
+
+    <h3>막힐 때</h3>
+    <div class="faq">
+      <details><summary>파일이 안 만들어져요</summary><p>설정 → 기능에서 '코드 실행 및 파일 생성'이 켜져 있는지 확인하고 다시 부탁해 주세요.</p></details>
+      <details><summary>합계가 안 맞아요</summary><p>'확인 필요'라고 적힌 줄부터 영수증과 다시 대조해 주세요. 구겨지거나 흐린 영수증은 숫자를 잘못 읽을 수 있습니다.</p></details>
+      <details><summary>사진을 몇 장까지 올릴 수 있나요?</summary><p>채팅에는 한 번에 20장까지 올릴 수 있고, 파일 하나는 30MB까지입니다.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 3교시 ============================== -->
+<section class="block" id="lesson3">
+  <div class="wrap">
+    <div class="block-head">
+      <p class="eyebrow">3교시 · 50분 · 채팅</p>
+      <h2>내 글로 발표 슬라이드 만들기</h2>
+      <p class="summary">내가 쓴 글을 주면 바로 발표할 수 있는 파워포인트 파일을 만들어 줍니다. 실습에서는 「투자를 합시다 1편」 원고로 독서 모임 발표 슬라이드를 만들었습니다.</p>
+    </div>
+
+    <div class="pair">
+      <figure class="shot">
+        <img src="img/slides-8.jpg" alt="첫 결과. 표지 포함 8장, 장마다 글 3줄 이하" loading="lazy" width="1100" height="1265">
+        <figcaption>첫 결과: 표지 포함 8장, 장마다 글 3줄 이하. <a href="examples/invest-slides-8.pptx" download="발표슬라이드-8장.pptx">파일 받기</a></figcaption>
+      </figure>
+      <figure class="shot">
+        <img src="img/slides-16.jpg" alt="고친 결과. 원고 전체를 담은 16장" loading="lazy" width="1100" height="2521">
+        <figcaption>고친 결과: 원고 전체를 담은 16장. <a href="examples/invest-slides-16.pptx" download="발표슬라이드-16장.pptx">파일 받기</a></figcaption>
+      </figure>
+    </div>
+
+    <h3>준비물</h3>
+    <ul class="kit">
+      <li><span>실습 원고(아래에서 내려받기) 또는 내가 쓴 글 한 편(A4 한 장 안팎)</span></li>
+      <li><span>'코드 실행 및 파일 생성' 켜기 (시작 전에 참고)</span></li>
+      <li><span>파워포인트 또는 무료 뷰어</span></li>
+    </ul>
+
+    <h3>따라 하기</h3>
+    <ol class="steps">
+      <li><div class="step-body">
+        <p>원고를 준비해 주세요.</p>
+        <div class="downloads"><a class="dl main" href="files/essay-invest-1.txt" download="투자를 합시다-1편.txt"><b>실습 원고 받기</b><span>텍스트 파일 · 14KB</span></a></div>
+      </div></li>
+      <li><div class="step-body">
+        <p>새 대화에 원고 파일을 올리고 부탁 문장을 붙여 넣어 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">부탁 문장 · 실습에서 쓴 문장</span><button class="copy" type="button">복사</button></div>
+<pre>아래 글로 발표 슬라이드를 만들어 줘.
+- 듣는 사람: 동네 독서 모임 회원 15명
+- 발표 시간: 5분
+- 장수: 표지 포함 8장
+- 한 장에 글은 3줄 이하, 큰 글씨
+- 파워포인트 파일(.pptx)로 만들어 줘</pre>
+        </div>
+        <p class="note">듣는 사람, 시간, 장수를 함께 말할수록 결과가 좋아집니다. "슬라이드 만들어 줘"만 쓰면 Claude가 짐작해서 만듭니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>받은 파일을 열어 봐 주세요.</p>
+        <p>실습에서는 표지 포함 8장이 나왔습니다. Claude는 파일을 넘기기 전에 화면으로 열어 보고, 줄이 넘친 두 곳을 스스로 고쳤습니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>마음에 안 드는 점을 말해 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 내용 다 넣기</span><button class="copy" type="button">복사</button></div>
+<pre>슬라이드에 내 글 전체 내용이 다 들어가 있지 않아. 내 글 전체를 분석해서 슬라이드를 다시 작성하고 디자인도 수정해</pre>
+        </div>
+        <div class="ask">
+          <p class="who">실습에서 Claude가 되물은 것</p>
+          <div class="qa"><p class="q">글 전체 내용을 담으려면 처음 조건(8장·3줄·5분)과 부딪힙니다. 어떻게 할까요?</p><p class="a">16장으로 늘리기 (한 장 3줄은 그대로)</p></div>
+        </div>
+        <p>조건끼리 부딪히면 Claude가 먼저 물어봅니다. 실습에서는 16장으로 늘리고, 원고의 숫자와 이름 78가지가 빠짐없이 들어갔는지 하나씩 대조했습니다. 원고에서 계산이 안 맞는 곳(60년이 아니라 55년)도 찾아 알려 줬습니다.</p>
+      </div></li>
+      <li><div class="step-body">
+        <p>한두 장만 고칠 때는 번호로 말해 주세요.</p>
+        <div class="prompt">
+          <div class="prompt-top"><span class="prompt-label">고치는 말 · 번호로 고치기</span><button class="copy" type="button">복사</button></div>
+<pre>좋아. 세 군데만 고쳐 줘.
+1. 2번 슬라이드 제목을 '왜 이 글을 썼나'로
+2. 5번 슬라이드는 글 대신 표 하나로
+3. 마지막 장에 다음 모임 날짜(10월 18일 토요일 오전 10시)를 크게
+고친 파워포인트 파일과 PDF 파일을 둘 다 줘.</pre>
+        </div>
+        <p class="note">디자인을 더 바꾸고 싶다면 Pro에 들어 있는 Claude의 슬라이드 기능(Claude Design)에서 다시 만들고 PPTX나 PDF로 내보낼 수 있습니다.</p>
+      </div></li>
+    </ol>
+
+    <h3>완성 확인</h3>
+    <ul class="check" data-check="l3">
+      <li><label><input type="checkbox" id="l3-1"><span>원고의 숫자·날짜·이름이 슬라이드와 같은가요?</span></label></li>
+      <li><label><input type="checkbox" id="l3-2"><span>글자가 칸 밖으로 넘친 슬라이드가 없나요?</span></label></li>
+      <li><label><input type="checkbox" id="l3-3"><span>원고에 없는 내용이 들어가지 않았나요?</span></label></li>
+      <li><label><input type="checkbox" id="l3-4"><span>파워포인트(PPTX)와 PDF 두 가지로 받았나요?</span></label></li>
+    </ul>
+    <p class="check-count" data-count="l3"></p>
+
+    <h3>맡기기 전에 볼 것</h3>
+    <div class="dodont">
+      <div class="dont"><h4>조심할 것</h4><ul>
+        <li>날짜·숫자·이름을 확인 없이 그대로 발표하기</li>
+        <li>남의 사진이나 글을 출처 없이 넣기</li>
+        <li>파일이 든 대화를 공개 링크로 공유하려 하기</li>
+      </ul></div>
+      <div class="do"><h4>이렇게</h4><ul>
+        <li>숫자와 날짜는 원고와 한 번 더 대조하기</li>
+        <li>사진은 내가 찍은 것이나 써도 되는 것만</li>
+        <li>파일이 든 대화는 공개 공유가 안 되니 파일로 보내기</li>
+      </ul></div>
+    </div>
+
+    <h3>막힐 때</h3>
+    <div class="faq">
+      <details><summary>글자가 칸을 넘쳐요</summary><p>"한 장에 3줄 이하"를 다시 말하거나, 넘친 슬라이드 번호만 줄여 달라고 해 주세요.</p></details>
+      <details><summary>글꼴이 깨져 보여요</summary><p>내 컴퓨터에 없는 글꼴일 수 있어요. "맑은 고딕으로 바꿔 줘"처럼 글꼴을 정해 주세요.</p></details>
+      <details><summary>원고에 없는 말이 들어갔어요</summary><p>"원고에 없는 내용은 넣지 마"를 덧붙여 다시 부탁해 주세요.</p></details>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>오늘 가져가는 것</b>: 사진 폴더 → album.html, 영수증 → 정산 엑셀, 원고 → PPTX와 PDF. 세 가지 모두 '기준 말하기 → 계획 확인 → 결과 확인 → 말로 고치기'로 만들었습니다.</p>
+    <p style="margin-top: 1rem">요금과 기능은 2026년 10월 기준입니다. 메뉴 이름은 화면 언어에 따라 다를 수 있습니다. 공식 도움말:</p>
+    <ul>
+      <li><a href="https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork" target="_blank" rel="noopener">Get started with Claude Cowork</a> · <a href="https://support.claude.com/en/articles/13364135-use-claude-cowork-safely" target="_blank" rel="noopener">Use Claude Cowork safely</a></li>
+      <li><a href="https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude" target="_blank" rel="noopener">Create and edit files with Claude</a> · <a href="https://support.claude.com/en/articles/8241126-upload-files-to-claude" target="_blank" rel="noopener">Upload files to Claude</a></li>
+      <li><a href="https://academy.claude.com/tutorials/using-claude-design-for-presentations-and-slide-decks" target="_blank" rel="noopener">Using Claude Design for presentations</a> · <a href="https://claude.com/pricing" target="_blank" rel="noopener">Plans &amp; Pricing</a></li>
+    </ul>
+    <p style="margin-top: 1rem">실습 사진·영수증·원고는 이 강의의 연습용 자료입니다.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // 부탁 문장 복사
+  document.querySelectorAll(".prompt").forEach(function (card) {
+    var btn = card.querySelector(".copy");
+    var pre = card.querySelector("pre");
+    if (!btn || !pre) return;
+    btn.addEventListener("click", function () {
+      var text = pre.textContent;
+      var done = function () {
+        btn.textContent = "복사됨";
+        btn.classList.add("done");
+        setTimeout(function () { btn.textContent = "복사"; btn.classList.remove("done"); }, 1800);
+      };
+      var fallback = function () {
+        var range = document.createRange();
+        range.selectNodeContents(pre);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        try { document.execCommand("copy") ? done() : (btn.textContent = "길게 눌러 복사"); }
+        catch (e) { btn.textContent = "길게 눌러 복사"; }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else {
+        fallback();
+      }
+    });
+  });
+
+  // 완성 확인 체크 (이 기기에만 저장)
+  function load(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { return {}; } }
+  function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+  document.querySelectorAll("[data-check]").forEach(function (list) {
+    var key = "claude-day1-" + list.dataset.check;
+    var state = load(key);
+    var boxes = list.querySelectorAll("input[type=checkbox]");
+    var count = document.querySelector('[data-count="' + list.dataset.check + '"]');
+    function update() {
+      var n = 0;
+      boxes.forEach(function (b) { if (b.checked) n++; });
+      if (count) count.textContent = n === boxes.length ? "모두 확인했습니다." : boxes.length + "개 중 " + n + "개 확인";
+    }
+    boxes.forEach(function (b) {
+      b.checked = !!state[b.id];
+      b.addEventListener("change", function () { state[b.id] = b.checked; save(key, state); update(); });
+    });
+    update();
+  });
+
+  // 지금 보고 있는 교시 표시
+  var links = Array.prototype.slice.call(document.querySelectorAll(".lesson-nav a"));
+  var sections = links.map(function (a) { return document.querySelector(a.getAttribute("href")); });
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        links.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("href") === "#" + e.target.id ? "true" : "false"); });
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    sections.forEach(function (s) { if (s) io.observe(s); });
+  }
+})();
+</script>
+</body>
+</html>
